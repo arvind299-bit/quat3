@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HARIOM ENTERPRISES</title>
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      padding: 10px;
+      margin: 0;
+      background: #fff;
+      color: #000;
+    }
+
+    #header {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    #logo {
+      height: 100px;
+      width: 100px;
+      margin-left: 15px;
+    }
+
+    #companyInfo {
+      margin-left: 15px;
+      flex: 1;
+    }
+
+    #companyName {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    #contactInfo {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    #invoiceContainer {
+      margin: 10px 0;
+      font-size: 16px;
+      background-color: #f0f0f0;
+      border-top: 5px solid #000;
+      padding: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .invoice-item {
+      flex: 1 1 30%;
+      min-width: 200px;
+    }
+
+    input[type="text"], input[type="number"], input[type="date"] {
+      font-size: 16px;
+      padding: 6px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    button {
+      font-size: 16px;
+      padding: 8px 12px;
+      background: black;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    table, th, td {
+      border: 1px solid #000;
+    }
+
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
+
+    #printButtons, #otherInfoContainer {
+      margin-top: 20px;
+    }
+
+    #line {
+      border-top: black 4px solid;
+      width: 100%;
+      margin-top: 30px;
+    }
+
+    #summary {
+      text-align: right;
+      margin-top: 20px;
+      font-size: 16px;
+    }
+
+    #terms {
+      margin-top: 30px;
+      font-size: 14px;
+    }
+
+    .discount-input {
+      position: relative;
+    }
+
+    .discount-input input {
+      padding-right: 25px;
+    }
+
+    .discount-input::after {
+      content: "%";
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    @media print {
+      #printButtons,
+      #addItemBtn,
+      #submitTableBtn,
+      input,
+      button {
+        display: none !important;
+      }
+    }
+
+    @media (max-width: 600px) {
+      #companyName {
+        font-size: 20px;
+      }
+
+      #invoiceContainer {
+        flex-direction: column;
+      }
+
+      .invoice-item {
+        flex: 1 1 100%;
+      }
+
+      button {
+        width: 100%;
+        margin-top: 10px;
+      }
+    }
+  </style>
+  <script>
+    window.onload = function () {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('invoiceDateInput').value = today;
+      addItemRow();
+    };
+
+    function submitInvoice() {
+      const invoiceNo = document.getElementById('invoiceInput').value.trim();
+      const invoiceDate = document.getElementById('invoiceDateInput').value.trim();
+      const dueDate = document.getElementById('dueDateInput').value.trim();
+
+      if (invoiceNo && invoiceDate && dueDate) {
+        const container = document.getElementById('invoiceContainer');
+        container.innerHTML = `
+          <div class="invoice-item">Invoice No: ${invoiceNo}</div>
+          <div class="invoice-item" style="text-align: center;">Invoice Date: ${invoiceDate}</div>
+          <div class="invoice-item" style="text-align: right;">Due Date: ${dueDate}</div>
+        `;
+      } else {
+        alert("Please fill in all fields.");
+      }
+    }
+
+    function printPage() {
+      window.print();
+    }
+
+    function submitOtherInfo() {
+      const inputBox = document.getElementById("otherInfoInput");
+      const value = inputBox.value.trim();
+      if (value) {
+        document.getElementById("otherInfoDisplay").innerText = "Bill To: " + value;
+        inputBox.style.display = "none";
+        document.getElementById("otherInfoBtn").style.display = "none";
+      }
+    }
+
+    function addItemRow() {
+      const tableBody = document.getElementById('itemTableBody');
+      const row = document.createElement('tr');
+
+      row.innerHTML = `
+        <td><input type="text" placeholder="Item" /></td>
+        <td><input type="number" placeholder="Qty" min="0" step="0.01" /></td>
+        <td><input type="number" placeholder="Rate" min="0" step="0.01" /></td>
+        <td class="discount-input"><input type="number" placeholder="Discount" min="0" max="100" step="0.01" /></td>
+        <td><span>—</span></td>
+      `;
+
+      tableBody.appendChild(row);
+    }
+
+    function finalizeTable() {
+      const rows = document.querySelectorAll('#itemTableBody tr');
+      let subtotal = 0;
+
+      rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        const item = cells[0].querySelector('input').value;
+        const qty = parseFloat(cells[1].querySelector('input').value) || 0;
+        const rate = parseFloat(cells[2].querySelector('input').value) || 0;
+        const discountPercentage = parseFloat(cells[3].querySelector('input').value) || 0;
+        
+        const amountBeforeDiscount = qty * rate;
+        const discountAmount = amountBeforeDiscount * (discountPercentage / 100);
+        const amount = amountBeforeDiscount - discountAmount;
+        
+        subtotal += amount;
+
+        row.innerHTML = `
+          <td>${item}</td>
+          <td>${qty}</td>
+          <td>${rate.toLocaleString()}</td>
+          <td>${discountPercentage}%</td>
+          <td>${amount.toLocaleString()}</td>
+        `;
+      });
+
+      document.getElementById('summary').innerHTML = `
+        <p><strong>Subtotal:</strong> ₹ ${subtotal.toLocaleString()}</p>
+        <p><strong>Total Amount:</strong> ₹ ${subtotal.toLocaleString()}</p>
+        <p><strong>Total (in words):</strong> ${convertNumberToWords(subtotal)} Rupees Only</p>
+      `;
+
+      document.getElementById('addItemBtn').style.display = 'none';
+      document.getElementById('submitTableBtn').style.display = 'none';
+    }
+
+    function convertNumberToWords(amount) {
+      const words = [
+        "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+        "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+        "Seventeen", "Eighteen", "Nineteen"
+      ];
+      const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+
+      function numToWords(n) {
+        if (n === 0) return "Zero";
+        if (n < 20) return words[n];
+        if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? " " + words[n % 10] : "");
+        if (n < 1000) return words[Math.floor(n / 100)] + " Hundred" + (n % 100 ? " and " + numToWords(n % 100) : "");
+        if (n < 100000) return numToWords(Math.floor(n / 1000)) + " Thousand" + (n % 1000 ? " " + numToWords(n % 1000) : "");
+        return numToWords(Math.floor(n / 100000)) + " Lakh" + (n % 100000 ? " " + numToWords(n % 100000) : "");
+      }
+
+      return numToWords(Math.floor(amount));
+    }
+  </script>
+</head>
+<body>
+
+  <div id="header">
+    <img src="HARIOM.jpg" alt="Logo" id="logo" />
+    <div id="companyInfo">
+      <div id="companyName">HARIOM ENTERPRISES</div>
+      <div id="contactInfo">
+        <div><b>Mobile:</b> 9809522929</div>
+        <div><b>Email:</b> arvindenterprises2929@gmail.com</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="invoiceContainer">
+    <div class="invoice-item">
+      <input type="text" id="invoiceInput" placeholder="Invoice No" />
+    </div>
+    <div class="invoice-item">
+      <input type="date" id="invoiceDateInput" />
+    </div>
+    <div class="invoice-item">
+      <input type="date" id="dueDateInput" />
+    </div>
+    <div class="invoice-item">
+      <button onclick="submitInvoice()">Submit</button>
+    </div>
+  </div>
+
+  <div id="otherInfoContainer">
+    <input type="text" id="otherInfoInput" placeholder="Other Side Information" />
+    <button id="otherInfoBtn" onclick="submitOtherInfo()">Submit</button>
+    <div id="otherInfoDisplay" style="margin-top: 10px; font-size: 16px; font-weight: bold;"></div>
+  </div>
+
+  <div id="line"></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ITEMS</th>
+        <th>QTY.</th>
+        <th>RATE</th>
+        <th>DISC.</th>
+        <th>AMOUNT</th>
+      </tr>
+    </thead>
+    <tbody id="itemTableBody"></tbody>
+  </table>
+
+  <div style="margin-top: 10px;">
+    <button id="addItemBtn" onclick="addItemRow()">+ Add Item</button>
+    <button id="submitTableBtn" onclick="finalizeTable()">Submit</button>
+  </div>
+
+  <div id="summary"></div>
+
+  <div id="terms">
+    <h4>Terms and Conditions:</h4>
+    <ul>
+      <li>Goods once sold will not be taken back.</li>
+      <li>Payment to be made within the due date.</li>
+      <li>Any dispute is subject to XYZ jurisdiction.</li>
+      <li>Please check items before accepting delivery.</li>
+    </ul>
+  </div>
+
+  <div id="printButtons">
+    <button onclick="printPage()">Print / Download PDF</button>
+  </div>
+
+</body>
+</html>
